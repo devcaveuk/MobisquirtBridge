@@ -44,7 +44,17 @@ If your board wiring differs, adjust `BRIDGE_RX_PIN` and `BRIDGE_TX_PIN` in `pla
 Supported PlatformIO environments:
 
 - `esp32-c3-supermini` (`esp32-c3-devkitm-1`)
-- `esp32-s3-zero` (`esp32-s3-zero`, 4MB flash)
+- `esp32-s3-zero` (`adafruit_qtpy_esp32s3_n4r2`, 4MB flash / 2MB PSRAM)
+
+## Source Layout
+
+- `src/main.cpp`: Startup orchestration, web route wiring, and reboot scheduling
+- `src/config.h`: Centralized constants, defaults, limits, preference keys, and board pin defaults
+- `src/bridge_types.h`: Shared data types (`WifiMode`, `BridgeConfig`)
+- `src/config_store.h` / `src/config_store.cpp`: NVS load/save and config sanitization
+- `src/wifi_manager.h` / `src/wifi_manager.cpp`: STA/AP startup and STA fallback to AP behavior
+- `src/web_ui.h` / `src/web_ui.cpp`: Web page rendering and request parsing/validation
+- `src/bridge_runtime.h` / `src/bridge_runtime.cpp`: TCP socket to UART bridge runtime
 
 ## Build and Flash
 
@@ -83,4 +93,3 @@ pio device monitor -b 115200
 
 - Add Bluetooth BLE support for streaming to/from the UART
 - Step by step documentation on hardware setup/connection
-- Refactor from the single main.cpp into function specific classes and associated header files
