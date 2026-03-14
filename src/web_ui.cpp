@@ -40,6 +40,15 @@ String truncateTo(const String &value, size_t maxLen) {
   return value.substring(0, maxLen);
 }
 
+bool isSupportedBaud(uint32_t baud) {
+  for (size_t i = 0; i < cfg::kSupportedBaudRateCount; i++) {
+    if (cfg::kSupportedBaudRates[i] == baud) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
 namespace webui {
@@ -74,7 +83,14 @@ String renderPage(const BridgeConfig &config, const String &currentIp) {
   html += "<input id='devname' name='devname' maxlength='" + String(cfg::kDeviceNameMaxLen) + "' value='" + htmlEscape(config.deviceName) + "'>";
 
   html += "<label for='baud'>UART Baud Rate</label>";
-  html += "<input id='baud' name='baud' type='number' min='" + String(cfg::kBaudMin) + "' max='" + String(cfg::kBaudMax) + "' value='" + String(config.baudRate) + "'>";
+  html += "<select id='baud' name='baud'>";
+  for (size_t i = 0; i < cfg::kSupportedBaudRateCount; i++) {
+    const uint32_t baud = cfg::kSupportedBaudRates[i];
+    html += "<option value='" + String(baud) + "'" +
+            String(config.baudRate == baud ? " selected" : "") + ">" + String(baud) +
+            "</option>";
+  }
+  html += "</select>";
 
   html += "<label for='mode'>Wi-Fi Mode</label>";
   html += "<select id='mode' name='mode'>";
@@ -110,9 +126,11 @@ bool parseConfigFromRequest(WebServer &web, const BridgeConfig &current, BridgeC
   }
 
   const long baud = web.arg("baud").toInt();
-  if (baud >= static_cast<long>(cfg::kBaudMin) && baud <= static_cast<long>(cfg::kBaudMax)) {
-    next.baudRate = static_cast<uint32_t>(baud);
+  if (baud <= 0 || !isSupportedBaud(static_cast<uint32_t>(baud))) {
+    errorMessage = "Invalid baud rate selection.";
+    return false;
   }
+  next.baudRate = static_cast<uint32_t>(baud);
 
   const String mode = web.arg("mode");
   next.wifiMode = (mode == "sta") ? WifiMode::STA : WifiMode::AP;

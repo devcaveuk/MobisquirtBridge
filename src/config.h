@@ -7,6 +7,8 @@ namespace cfg {
 constexpr uint32_t kDefaultBaud = 115200;
 constexpr uint32_t kBaudMin = 1200;
 constexpr uint32_t kBaudMax = 2000000;
+constexpr uint32_t kSupportedBaudRates[] = {4800, 9600, 19200, 38400, 57600, 115200};
+constexpr size_t kSupportedBaudRateCount = sizeof(kSupportedBaudRates) / sizeof(kSupportedBaudRates[0]);
 constexpr uint16_t kTcpPort = 9001;
 constexpr uint16_t kWebPort = 80;
 constexpr uint32_t kStaConnectTimeoutMs = 15000;
