@@ -22,6 +22,7 @@ PlatformIO firmware for ESP32-C3 and ESP32-S3 boards that provides:
 - Web configuration page on port `80`
 - Persistent settings stored in NVS (`Preferences`)
 - Automatic fallback to AP mode if STA connection fails
+- Onboard status LED: blinking while waiting for a TCP client, solid when connected
 
 ## Default Settings
 
@@ -34,12 +35,13 @@ PlatformIO firmware for ESP32-C3 and ESP32-S3 boards that provides:
 
 ## Hardware Notes
 
-Default UART bridge pins in firmware:
+Default UART bridge pins in firmware (mapped by environment and board):
 
-- `esp32-c3-supermini`: RX GPIO20, TX GPIO21
-- `esp32-s3-zero`: RX GPIO17, TX GPIO18
+- `esp32-c3-supermini` -> `esp32-c3-devkitm-1` (ESP32-C3): RX GPIO20, TX GPIO21
+- `esp32-s3-zero` -> `adafruit_qtpy_esp32s3_n4r2` (ESP32-S3): RX GPIO17, TX GPIO18
 
-If your board wiring differs, adjust `BRIDGE_RX_PIN` and `BRIDGE_TX_PIN` in `platformio.ini` for the relevant environment.
+If your board wiring differs, adjust `kBridgeRxPin` and `kBridgeTxPin` in `src/config.h`.
+The status LED uses `LED_BUILTIN` by default. You can override this with `STATUS_LED_PIN` and set active-low behavior with `STATUS_LED_ACTIVE_LOW=1` in `platformio.ini`.
 
 Supported PlatformIO environments:
 

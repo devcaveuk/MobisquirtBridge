@@ -1,11 +1,72 @@
 #include "bridge_runtime.h"
 
+#include <esp32-hal-rgb-led.h>
+
 #include "config.h"
+
+namespace {
+
+bool gLedIsOn = false;
+uint32_t gLedLastToggleAt = 0;
+
+bool ledEnabled() { return cfg::kStatusLedPin >= 0; }
+
+void writeLed(bool on) {
+  if (!ledEnabled()) {
+    return;
+  }
+
+  if (cfg::kStatusLedIsNeoPixel) {
+    const uint8_t value = on ? 16 : 0;
+    neopixelWrite(cfg::kStatusLedPin, value, value, value);
+    gLedIsOn = on;
+    return;
+  }
+
+  int level = on ? HIGH : LOW;
+  if (cfg::kStatusLedActiveLow) {
+    level = on ? LOW : HIGH;
+  }
+  digitalWrite(cfg::kStatusLedPin, level);
+  gLedIsOn = on;
+}
+
+void setupStatusLed() {
+  if (!ledEnabled()) {
+    return;
+  }
+
+  pinMode(cfg::kStatusLedPin, OUTPUT);
+  writeLed(false);
+  gLedLastToggleAt = millis();
+}
+
+void updateStatusLed(bool connected) {
+  if (!ledEnabled()) {
+    return;
+  }
+
+  if (connected) {
+    if (!gLedIsOn) {
+      writeLed(true);
+    }
+    return;
+  }
+
+  const uint32_t now = millis();
+  if (now - gLedLastToggleAt >= cfg::kStatusLedBlinkIntervalMs) {
+    gLedLastToggleAt = now;
+    writeLed(!gLedIsOn);
+  }
+}
+
+}  // namespace
 
 namespace bridge_runtime {
 
 void setupBridge(WiFiServer &tcpServer, HardwareSerial &uart, const BridgeConfig &config) {
   uart.begin(config.baudRate, SERIAL_8N1, cfg::kBridgeRxPin, cfg::kBridgeTxPin);
+  setupStatusLed();
   tcpServer.begin();
   tcpServer.setNoDelay(true);
   Serial.printf("TCP server started on port %u.\n", cfg::kTcpPort);
@@ -14,7 +75,8 @@ void setupBridge(WiFiServer &tcpServer, HardwareSerial &uart, const BridgeConfig
 }
 
 void serviceTcpBridge(WiFiServer &tcpServer, WiFiClient &tcpClient, HardwareSerial &uart) {
-  if (!tcpClient || !tcpClient.connected()) {
+  bool connected = tcpClient && tcpClient.connected();
+  if (!connected) {
     WiFiClient incoming = tcpServer.available();
     if (incoming) {
       if (tcpClient) {
@@ -23,12 +85,16 @@ void serviceTcpBridge(WiFiServer &tcpServer, WiFiClient &tcpClient, HardwareSeri
       tcpClient = incoming;
       tcpClient.setNoDelay(true);
       Serial.printf("TCP client connected: %s\n", tcpClient.remoteIP().toString().c_str());
+      connected = true;
     }
   }
 
-  if (!tcpClient || !tcpClient.connected()) {
+  if (!connected) {
+    updateStatusLed(false);
     return;
   }
+
+  updateStatusLed(true);
 
   uint8_t buf[256];
 
