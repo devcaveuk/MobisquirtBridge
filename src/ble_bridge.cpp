@@ -46,11 +46,10 @@ class SecurityCallbacks : public BLESecurityCallbacks {
     Serial.println("→ BLE Authentication Complete:");
     if (cmpl.success) {
       Serial.printf("  ✓ SUCCESS - Auth Mode: 0x%02X ", cmpl.auth_mode);
-      // Decode auth mode bits
       bool bonded = (cmpl.auth_mode & 0x01);
-      bool mitm = (cmpl.auth_mode & 0x04);  // MITM is bit 2
-      bool sc = (cmpl.auth_mode & 0x08);     // SC is bit 3
-      gBleMitmProtected = mitm && bonded;  // Need both for proper auth
+      bool mitm = (cmpl.auth_mode & 0x04);
+      bool sc = (cmpl.auth_mode & 0x08);
+      gBleMitmProtected = mitm && bonded;
       
       Serial.printf("[%s%s%s]\n", 
                     bonded ? "BONDED " : "NOT-BONDED ",
@@ -58,25 +57,24 @@ class SecurityCallbacks : public BLESecurityCallbacks {
                     sc ? "SC" : "LEGACY");
       
       if (!bonded) {
-        Serial.println("  ✗ ERROR: BONDING FAILED - Device will not be saved!");
-        Serial.println("  Device will disappear from paired list on disconnect.");
-        Serial.println("  Try: Forget device on iOS, restart ESP32, pair again.");
+        Serial.println("  ✗ BONDING FAILED - forcing disconnect");
+        if (gBleServer) {
+          gBleServer->disconnect(gBleServer->getConnId());
+        }
       } else if (!mitm) {
-        Serial.println("  ⚠ WARNING: MITM NOT SET - Pairing lacks MITM protection!");
-        Serial.println("  This will cause GATT_INSUF_AUTHENTICATION errors.");
+        Serial.println("  ⚠ NO MITM - forcing disconnect");
+        if (gBleServer) {
+          gBleServer->disconnect(gBleServer->getConnId());
+        }
       } else {
-        Serial.println("  ✓ Device is properly bonded with MITM protection");
-        Serial.println("  ✓ GATT operations should work without errors");
-        Serial.println("  ✓ Device will remain in paired list after disconnect");
+        Serial.println("  ✓ Properly bonded with MITM protection");
       }
     } else {
       gBleMitmProtected = false;
-      Serial.printf("  ✗ FAILED - Reason: %d\n", cmpl.fail_reason);
-      Serial.println("  Common reasons:");
-      Serial.println("  - Wrong PIN entered (reason 1)");
-      Serial.println("  - Timeout (reason 8)");
-      Serial.println("  - User cancelled (reason 4)");
-      Serial.println("  - Insufficient authentication (reason 5)");
+      Serial.printf("  ✗ FAILED - Reason: %d - forcing disconnect\n", cmpl.fail_reason);
+      if (gBleServer) {
+        gBleServer->disconnect(gBleServer->getConnId());
+      }
     }
   }
 
