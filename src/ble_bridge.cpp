@@ -4,7 +4,7 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include <BLESecurity.h>
+#include <esp_gap_ble_api.h>
 
 #include "bridge_runtime.h"
 #include "config.h"
@@ -15,45 +15,80 @@ BLEServer *gBleServer = nullptr;
 BLECharacteristic *gBleCharacteristic = nullptr;
 bool gBleDeviceConnected = false;
 bool gBleOldDeviceConnected = false;
+bool gBleMitmProtected = false;
 String gBleServiceUuid;
 String gBleCharacteristicUuid;
 uint32_t gBlePin = 0;
 
 class SecurityCallbacks : public BLESecurityCallbacks {
   uint32_t onPassKeyRequest() override {
-    Serial.printf("BLE PassKey Request - Returning PIN: %06u\n", gBlePin);
-    Serial.println("iOS should prompt for PIN entry now...");
+    Serial.printf("→ BLE PassKey Request - Returning PIN: %06u\n", gBlePin);
+    Serial.println("  iOS should prompt for PIN entry now...");
     return gBlePin;
   }
 
   void onPassKeyNotify(uint32_t pass_key) override {
-    Serial.printf("BLE PassKey Notify: %06u\n", pass_key);
+    Serial.printf("→ BLE PassKey Notify: %06u ", pass_key);
+    if (pass_key == gBlePin) {
+      Serial.println("- matches our PIN ✓");
+      Serial.println("  Waiting for authentication to complete...");
+    } else {
+      Serial.printf("- does NOT match our PIN (%06u) ✗\n", gBlePin);
+    }
   }
 
   bool onSecurityRequest() override {
-    Serial.println("BLE Security Request - Accepting pairing request");
+    Serial.println("→ BLE Security Request - Accepting pairing request");
     return true;
   }
 
   void onAuthenticationComplete(esp_ble_auth_cmpl_t cmpl) override {
+    Serial.println("→ BLE Authentication Complete:");
     if (cmpl.success) {
-      Serial.println("✓ BLE Pairing Success - Device is now bonded");
+      Serial.printf("  ✓ SUCCESS - Auth Mode: 0x%02X ", cmpl.auth_mode);
+      // Decode auth mode bits
+      bool bonded = (cmpl.auth_mode & 0x01);
+      bool mitm = (cmpl.auth_mode & 0x04);  // MITM is bit 2
+      bool sc = (cmpl.auth_mode & 0x08);     // SC is bit 3
+      gBleMitmProtected = mitm && bonded;  // Need both for proper auth
+      
+      Serial.printf("[%s%s%s]\n", 
+                    bonded ? "BONDED " : "NOT-BONDED ",
+                    mitm ? "MITM " : "NO-MITM ",
+                    sc ? "SC" : "LEGACY");
+      
+      if (!bonded) {
+        Serial.println("  ✗ ERROR: BONDING FAILED - Device will not be saved!");
+        Serial.println("  Device will disappear from paired list on disconnect.");
+        Serial.println("  Try: Forget device on iOS, restart ESP32, pair again.");
+      } else if (!mitm) {
+        Serial.println("  ⚠ WARNING: MITM NOT SET - Pairing lacks MITM protection!");
+        Serial.println("  This will cause GATT_INSUF_AUTHENTICATION errors.");
+      } else {
+        Serial.println("  ✓ Device is properly bonded with MITM protection");
+        Serial.println("  ✓ GATT operations should work without errors");
+        Serial.println("  ✓ Device will remain in paired list after disconnect");
+      }
     } else {
-      Serial.printf("✗ BLE Pairing Failed - Reason: %d\n", cmpl.fail_reason);
+      gBleMitmProtected = false;
+      Serial.printf("  ✗ FAILED - Reason: %d\n", cmpl.fail_reason);
       Serial.println("  Common reasons:");
-      Serial.println("  - Wrong PIN entered");
-      Serial.println("  - Timeout");
-      Serial.println("  - User cancelled");
+      Serial.println("  - Wrong PIN entered (reason 1)");
+      Serial.println("  - Timeout (reason 8)");
+      Serial.println("  - User cancelled (reason 4)");
+      Serial.println("  - Insufficient authentication (reason 5)");
     }
   }
 
   bool onConfirmPIN(uint32_t pin) override {
-    Serial.printf("BLE Confirm PIN: %06u (expected: %06u)\n", pin, gBlePin);
+    Serial.printf("→ BLE Confirm PIN: %06u (expected: %06u) ", pin, gBlePin);
     bool valid = (pin == gBlePin);
     if (valid) {
-      Serial.println("✓ PIN matches");
+      Serial.println("✓");
+      Serial.println("  PIN confirmed - authentication should succeed");
     } else {
-      Serial.println("✗ PIN mismatch - pairing will fail");
+      Serial.println("✗");
+      Serial.println("  PIN mismatch - pairing will fail");
     }
     return valid;
   }
@@ -92,20 +127,30 @@ void setupBle(const BridgeConfig &config) {
 
   Serial.println("Starting BLE...");
   BLEDevice::init(config.deviceName.c_str());
+  Serial.println("BLE initialized");
 
-  // Configure BLE security - ESP32 displays PIN, iOS user enters it
-  BLEDevice::setEncryptionLevel(ESP_BLE_SEC_ENCRYPT_MITM);
+  // Set security callbacks for PIN handling
   BLEDevice::setSecurityCallbacks(new SecurityCallbacks());
 
-  BLESecurity *pSecurity = new BLESecurity();
-  // Require Secure Connections, MITM protection, and Bonding - no Just Works
-  pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM_BOND);
-  // Display Only - ESP32 "displays" PIN, iOS user must enter it
-  pSecurity->setCapability(ESP_IO_CAP_OUT);
-  pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
-  pSecurity->setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
-  pSecurity->setKeySize(16);
-  pSecurity->setStaticPIN(gBlePin);
+  // Configure security using ESP-IDF API directly for full control
+  // This avoids BLESecurity wrapper conflicts with setStaticPIN()
+  esp_ble_auth_req_t auth_req = ESP_LE_AUTH_REQ_SC_MITM_BOND;  // 0x0D
+  esp_ble_io_cap_t iocap = ESP_IO_CAP_OUT;  // Display Only
+  uint8_t key_size = 16;
+  uint8_t init_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+  uint8_t rsp_key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK;
+  uint8_t auth_option = ESP_BLE_ONLY_ACCEPT_SPECIFIED_AUTH_DISABLE;
+  uint32_t passkey = gBlePin;
+
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_STATIC_PASSKEY, &passkey, sizeof(uint32_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_AUTHEN_REQ_MODE, &auth_req, sizeof(esp_ble_auth_req_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_IOCAP_MODE, &iocap, sizeof(esp_ble_io_cap_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &key_size, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_INIT_KEY, &init_key, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(uint8_t));
+  esp_ble_gap_set_security_param(ESP_BLE_SM_ONLY_ACCEPT_SPECIFIED_SEC_AUTH, &auth_option, sizeof(uint8_t));
+
+  Serial.printf("Security configured: auth_req=0x%02X iocap=%d pin=%06u\n", auth_req, iocap, passkey);
 
   gBleServer = BLEDevice::createServer();
   gBleServer->setCallbacks(new ServerCallbacks());
@@ -117,10 +162,10 @@ void setupBle(const BridgeConfig &config) {
       BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE |
           BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_INDICATE);
 
-  // Set security requirements for the characteristic to trigger pairing
+  // Require encryption to trigger pairing on first access
   gBleCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
 
-  // Add CCCD descriptor for notifications and secure it
+  // Add CCCD descriptor for notifications
   BLE2902 *pDescriptor = new BLE2902();
   pDescriptor->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
   gBleCharacteristic->addDescriptor(pDescriptor);
@@ -140,13 +185,9 @@ void setupBle(const BridgeConfig &config) {
   Serial.printf("BLE started. Device name: %s\n", config.deviceName.c_str());
   Serial.printf("Service UUID: %s\n", gBleServiceUuid.c_str());
   Serial.printf("Characteristic UUID: %s\n", gBleCharacteristicUuid.c_str());
+  Serial.println("Security: SC + MITM + Bonding (ESP-IDF API)");
   Serial.println("----------------------------------------");
   Serial.printf("** BLE PIN: %06u **\n", gBlePin);
-  Serial.println("----------------------------------------");
-  Serial.println("When connecting from iOS:");
-  Serial.println("1. Scan and connect to the device");
-  Serial.println("2. iOS will prompt for PIN entry");
-  Serial.printf("3. Enter: %06u\n", gBlePin);
   Serial.println("========================================");
 }
 
@@ -157,6 +198,7 @@ void shutdownBle() {
     gBleCharacteristic = nullptr;
     gBleDeviceConnected = false;
     gBleOldDeviceConnected = false;
+    gBleMitmProtected = false;
     Serial.println("BLE shutdown.");
   }
 }
