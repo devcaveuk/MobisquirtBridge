@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include <WebServer.h>
 
+#include "ble_bridge.h"
 #include "bridge_runtime.h"
 #include "bridge_types.h"
 #include "config.h"
@@ -36,6 +37,10 @@ void handleStatus() {
   body += wifi_manager::currentIp();
   body += "\nbaud=";
   body += String(gConfig.baudRate);
+  body += "\nble=";
+  body += (gConfig.bluetoothMode == BluetoothMode::ON ? "on" : "off");
+  body += "\nble_connected=";
+  body += (ble_bridge::isBleConnected() ? "yes" : "no");
   body += "\n";
   gWeb.send(200, "text/plain", body);
 }
@@ -78,6 +83,7 @@ void setup() {
   }
   setupWeb();
   bridge_runtime::setupBridge(gTcpServer, Serial1, gConfig);
+  ble_bridge::setupBle(gConfig);
 
   Serial.printf("Open config UI: http://%s/\n", wifi_manager::currentIp().c_str());
 }
@@ -85,6 +91,7 @@ void setup() {
 void loop() {
   gWeb.handleClient();
   bridge_runtime::serviceTcpBridge(gTcpServer, gTcpClient, Serial1);
+  ble_bridge::serviceBle(Serial1);
 
   if (gRestartScheduled && static_cast<int32_t>(millis() - gRestartAt) >= 0) {
     Serial.println("Restarting...");

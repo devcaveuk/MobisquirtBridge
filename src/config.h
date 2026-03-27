@@ -12,7 +12,7 @@ constexpr size_t kSupportedBaudRateCount = sizeof(kSupportedBaudRates) / sizeof(
 constexpr uint16_t kTcpPort = 9001;
 constexpr uint16_t kWebPort = 80;
 constexpr uint32_t kStaConnectTimeoutMs = 15000;
-constexpr uint32_t kStatusLedBlinkIntervalMs = 350;
+constexpr uint32_t kStatusLedBlinkIntervalMs = 600;
 
 constexpr size_t kDeviceNameMaxLen = 32;
 constexpr size_t kSsidMaxLen = 32;
@@ -27,15 +27,25 @@ constexpr const char kPrefsStaSsidKey[] = "stassid";
 constexpr const char kPrefsStaPasswordKey[] = "stapass";
 constexpr const char kPrefsApSsidKey[] = "apssid";
 constexpr const char kPrefsApPasswordKey[] = "appass";
-
+constexpr const char kPrefsBleEnabledKey[] = "bleenabled";
+constexpr const char kPrefsBleServiceUuidKey[] = "blesvc";
+constexpr const char kPrefsBleCharUuidKey[] = "blechar";
+constexpr const char kPrefsBlePinKey[] = "blepin";
 constexpr const char kDefaultDeviceName[] = "MobisquirtBridge";
 constexpr const char kDefaultApSsid[] = "MobisquirtBridge";
 constexpr const char kDefaultApPassword[] = "mobisquirt123";
 
+constexpr size_t kBleUuidMaxLen = 36;
+constexpr size_t kBlePinLen = 6;
+constexpr uint32_t kBleDefaultState = static_cast<uint32_t>(BluetoothMode::OFF);
+constexpr const char kBleServiceUuid[] = "8f771e35-9b8f-42e7-a91c-5dcb9184d354";
+constexpr const char kBleCharacteristicUuid[] = "d5a18ee7-877d-4b4a-8cce-c8b11c724b2d";
+constexpr const char kBleDefaultPin[] = "123456";
+
 // UART bridge pins are defined here by board family.
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
-constexpr int kBridgeRxPin = 17;
-constexpr int kBridgeTxPin = 18;
+constexpr int kBridgeRxPin = 7;
+constexpr int kBridgeTxPin = 8;
 #else
 constexpr int kBridgeRxPin = 20;
 constexpr int kBridgeTxPin = 21;

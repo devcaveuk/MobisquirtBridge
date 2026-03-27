@@ -1,12 +1,10 @@
 # MobisquirtBridge
 
-A simple bridge that allows Mobisquirt (or TunerStudio) to connect to the ECU via TCP.
+A simple bridge that allows Mobisquirt (or TunerStudio) to connect to the ECU via TCP or Bluetooth LE.
 
-Using an ESP32-C3 "supermini" or an ESP32-S3 Zero offers full WiFi connectivity in a small cheap package. This can either be connected directly to the ECU PCB (built into the ECU if desired) or can be connected to a UART to RS232 convertor with a DB9 connector, allowing connection through an existing external serial port on the ECU.
+Using an ESP32-C3 "supermini" or an ESP32-S3 Zero offers full WiFi and BLE connectivity in a small cheap package. This can either be connected directly to the ECU PCB (built into the ECU if desired) or can be connected to a UART to RS232 convertor with a DB9 connector, allowing connection through an existing external serial port on the ECU.
 
 Both modules are 3.3v and can be powered from 5v, however, when connected to a 5V UART the RX pin will need level shifting from 5v to 3.3v - normally this is done using a simple resistor. Failing to protect the module from 5v on it's RX pin may damage the module.
-
-There is a potential for this to also support a Bluetooth BLE connection to stream data to/from UART via Bluetooth BLE. This might be useful in some scenarios, particularly as it could mean auto connecting from an app rather than having to connect to the WiFi AP all the time.
 
 PlatformIO firmware for ESP32-C3 and ESP32-S3 boards that provides:
 
@@ -17,12 +15,15 @@ PlatformIO firmware for ESP32-C3 and ESP32-S3 boards that provides:
 
 ## Features
 
-- TCP socket server on port `9001`
-- One TCP client at a time (simplifies transparent serial bridging)
+- TCP socket server on port `9001` for WiFi connectivity
+- Bluetooth LE (BLE) bridge as an alternative to WiFi
+- PIN-protected BLE pairing for security
+- One client at a time (TCP or BLE) for transparent serial bridging
 - Web configuration page on port `80`
 - Persistent settings stored in NVS (`Preferences`)
 - Automatic fallback to AP mode if STA connection fails
-- Onboard status LED: blinking while waiting for a TCP client, solid when connected
+- Onboard status LED: blinking while waiting for a client, solid when connected
+- Configurable BLE Service and Characteristic UUIDs
 
 ## Default Settings
 
@@ -32,13 +33,17 @@ PlatformIO firmware for ESP32-C3 and ESP32-S3 boards that provides:
 - AP password: `mobisquirt123`
 - UART baud rate: `115200`
 - TCP port: `9001`
+- BLE: Off by default
+- BLE Service UUID: `8f771e35-9b8f-42e7-a91c-5dcb9184d354`
+- BLE Characteristic UUID: `d5a18ee7-877d-4b4a-8cce-c8b11c724b2d`
+- BLE PIN: `123456`
 
 ## Hardware Notes
 
 Default UART bridge pins in firmware (mapped by environment and board):
 
 - `esp32-c3-supermini` -> `esp32-c3-devkitm-1` (ESP32-C3): RX GPIO20, TX GPIO21
-- `esp32-s3-zero` -> `adafruit_qtpy_esp32s3_n4r2` (ESP32-S3): RX GPIO17, TX GPIO18
+- `esp32-s3-zero` -> `adafruit_qtpy_esp32s3_n4r2` (ESP32-S3): RX GPIO7, TX GPIO8
 
 If your board wiring differs, adjust `kBridgeRxPin` and `kBridgeTxPin` in `src/config.h`.
 The status LED uses `LED_BUILTIN` by default. You can override this with `STATUS_LED_PIN` and set active-low behavior with `STATUS_LED_ACTIVE_LOW=1` in `platformio.ini`.
@@ -57,6 +62,7 @@ Supported PlatformIO environments:
 - `src/wifi_manager.h` / `src/wifi_manager.cpp`: STA/AP startup and STA fallback to AP behavior
 - `src/web_ui.h` / `src/web_ui.cpp`: Web page rendering and request parsing/validation
 - `src/bridge_runtime.h` / `src/bridge_runtime.cpp`: TCP socket to UART bridge runtime
+- `src/ble_bridge.h` / `src/ble_bridge.cpp`: BLE to UART bridge runtime
 
 ## Build and Flash
 
@@ -75,6 +81,8 @@ pio device monitor -b 115200
 
 ## Usage
 
+### WiFi TCP Mode
+
 1. Power the board and connect to Wi-Fi:
    - AP mode default SSID: `MobisquirtBridge`
    - Password: `mobisquirt123`
@@ -83,15 +91,36 @@ pio device monitor -b 115200
    - UART baud rate
    - Wi-Fi mode (AP or STA)
    - SSID/password fields
+   - BLE settings (enable/disable, UUIDs, PIN)
 4. Save settings from the page. The device reboots and applies changes.
 5. Connect a TCP client to port `9001` on the device IP to bridge serial traffic.
 
+### Bluetooth LE Mode
+
+1. Enable BLE in the web configuration page
+2. Configure the BLE PIN (default: `123456`, must be 6 digits)
+3. Save settings and reboot the device
+4. The device will advertise as `MobisquirtBridge` (or your configured device name)
+5. Connect to the BLE device from your client application
+6. When prompted for a PIN during pairing, enter the configured 6-digit PIN
+7. Use the configured Service and Characteristic UUIDs to send/receive UART data
+8. Data written to the characteristic is forwarded to UART
+9. Data from UART is notified through the characteristic
+
+**Note:** BLE and WiFi TCP can both be enabled simultaneously. WiFi is used for the web configuration interface, while BLE provides the data bridge 4. Save settings from the page. The device reboots and applies changes. 5. Connect a TCP client to port `9001` on the device IP to bridge serial traffic.
+
 ## Security Notes
 
-- This is a simple configuration UI intended for trusted local networks.
-- For production, add authentication and transport protections.
+- BLE communication uses PIN-based pairing with bonding and encryption.
+- Change the default PIN via the web interface for better security.
+
+## Planned features
 
 ## Planned features
 
 - Add Bluetooth BLE support for streaming to/from the UART
 - Step by step documentation on hardware setup/connection
+
+```
+
+```

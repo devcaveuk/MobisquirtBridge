@@ -9,5 +9,6 @@ namespace bridge_runtime {
 
 void setupBridge(WiFiServer &tcpServer, HardwareSerial &uart, const BridgeConfig &config);
 void serviceTcpBridge(WiFiServer &tcpServer, WiFiClient &tcpClient, HardwareSerial &uart);
+void updateBridgeStatusLed(bool connected);
 
 }  // namespace bridge_runtime

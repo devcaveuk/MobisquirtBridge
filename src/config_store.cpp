@@ -21,12 +21,17 @@ void loadConfig(Preferences &prefs, BridgeConfig &config) {
   config.baudRate = prefs.getULong(cfg::kPrefsBaudKey, cfg::kDefaultBaud);
   config.wifiMode = static_cast<WifiMode>(
       prefs.getUChar(cfg::kPrefsWifiModeKey, static_cast<uint8_t>(WifiMode::AP)));
+  config.bluetoothMode = static_cast<BluetoothMode>(
+      prefs.getUChar(cfg::kPrefsBleEnabledKey, static_cast<uint8_t>(BluetoothMode::OFF)));
 
   config.deviceName = prefs.getString(cfg::kPrefsDeviceNameKey, cfg::kDefaultDeviceName);
   config.staSsid = prefs.getString(cfg::kPrefsStaSsidKey, "");
   config.staPassword = prefs.getString(cfg::kPrefsStaPasswordKey, "");
   config.apSsid = prefs.getString(cfg::kPrefsApSsidKey, cfg::kDefaultApSsid);
   config.apPassword = prefs.getString(cfg::kPrefsApPasswordKey, cfg::kDefaultApPassword);
+  config.BLEServiceUuid = prefs.getString(cfg::kPrefsBleServiceUuidKey, cfg::kBleServiceUuid);
+  config.BLECharacteristicUuid = prefs.getString(cfg::kPrefsBleCharUuidKey, cfg::kBleCharacteristicUuid);
+  config.BLEPin = prefs.getString(cfg::kPrefsBlePinKey, cfg::kBleDefaultPin);
 
   prefs.end();
 
@@ -43,6 +48,9 @@ void loadConfig(Preferences &prefs, BridgeConfig &config) {
   config.staPassword = truncateTo(config.staPassword, cfg::kPasswordMaxLen);
   config.apSsid = truncateTo(config.apSsid, cfg::kSsidMaxLen);
   config.apPassword = truncateTo(config.apPassword, cfg::kPasswordMaxLen);
+  config.BLEServiceUuid = truncateTo(config.BLEServiceUuid, cfg::kBleUuidMaxLen);
+  config.BLECharacteristicUuid = truncateTo(config.BLECharacteristicUuid, cfg::kBleUuidMaxLen);
+  config.BLEPin = truncateTo(config.BLEPin, cfg::kBlePinLen);
 
   if (config.deviceName.isEmpty()) {
     config.deviceName = cfg::kDefaultDeviceName;
@@ -50,17 +58,30 @@ void loadConfig(Preferences &prefs, BridgeConfig &config) {
   if (config.apSsid.isEmpty()) {
     config.apSsid = cfg::kDefaultApSsid;
   }
+  if (config.BLEServiceUuid.isEmpty()) {
+    config.BLEServiceUuid = cfg::kBleServiceUuid;
+  }
+  if (config.BLECharacteristicUuid.isEmpty()) {
+    config.BLECharacteristicUuid = cfg::kBleCharacteristicUuid;
+  }
+  if (config.BLEPin.isEmpty() || config.BLEPin.length() != cfg::kBlePinLen) {
+    config.BLEPin = cfg::kBleDefaultPin;
+  }
 }
 
 void saveConfig(Preferences &prefs, const BridgeConfig &config) {
   prefs.begin(cfg::kPrefsNamespace, false);
   prefs.putULong(cfg::kPrefsBaudKey, config.baudRate);
   prefs.putUChar(cfg::kPrefsWifiModeKey, static_cast<uint8_t>(config.wifiMode));
+  prefs.putUChar(cfg::kPrefsBleEnabledKey, static_cast<uint8_t>(config.bluetoothMode));
   prefs.putString(cfg::kPrefsDeviceNameKey, config.deviceName);
   prefs.putString(cfg::kPrefsStaSsidKey, config.staSsid);
   prefs.putString(cfg::kPrefsStaPasswordKey, config.staPassword);
   prefs.putString(cfg::kPrefsApSsidKey, config.apSsid);
   prefs.putString(cfg::kPrefsApPasswordKey, config.apPassword);
+  prefs.putString(cfg::kPrefsBleServiceUuidKey, config.BLEServiceUuid);
+  prefs.putString(cfg::kPrefsBleCharUuidKey, config.BLECharacteristicUuid);
+  prefs.putString(cfg::kPrefsBlePinKey, config.BLEPin);
   prefs.end();
 }
 

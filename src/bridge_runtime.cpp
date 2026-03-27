@@ -118,4 +118,6 @@ void serviceTcpBridge(WiFiServer &tcpServer, WiFiClient &tcpClient, HardwareSeri
   }
 }
 
+void updateBridgeStatusLed(bool connected) { updateStatusLed(connected); }
+
 }  // namespace bridge_runtime

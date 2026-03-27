@@ -110,6 +110,24 @@ String renderPage(const BridgeConfig &config, const String &currentIp) {
   html += "<label for='stapass'>STA Password</label>";
   html += "<input id='stapass' type='password' name='stapass' maxlength='" + String(cfg::kPasswordMaxLen) + "' value='" + htmlEscape(config.staPassword) + "'>";
 
+  html += "<h2 style='margin-top:24px;'>Bluetooth LE Settings</h2>";
+  html += "<label for='bleenabled'>Enable BLE Bridge</label>";
+  html += "<select id='bleenabled' name='bleenabled'>";
+  html += "<option value='off'" + String(config.bluetoothMode == BluetoothMode::OFF ? " selected" : "") + ">Off</option>";
+  html += "<option value='on'" + String(config.bluetoothMode == BluetoothMode::ON ? " selected" : "") + ">On</option>";
+  html += "</select>";
+  html += "<p class='hint'>BLE can be used as an alternative to WiFi for UART communication</p>";
+
+  html += "<label for='blesvc'>BLE Service UUID</label>";
+  html += "<input id='blesvc' name='blesvc' maxlength='" + String(cfg::kBleUuidMaxLen) + "' value='" + htmlEscape(config.BLEServiceUuid) + "'>";
+
+  html += "<label for='blechar'>BLE Characteristic UUID</label>";
+  html += "<input id='blechar' name='blechar' maxlength='" + String(cfg::kBleUuidMaxLen) + "' value='" + htmlEscape(config.BLECharacteristicUuid) + "'>";
+
+  html += "<label for='blepin'>BLE PIN (6 digits)</label>";
+  html += "<input id='blepin' name='blepin' type='text' pattern='[0-9]{6}' maxlength='6' value='" + htmlEscape(config.BLEPin) + "'>";
+  html += "<p class='hint'>6-digit PIN required for BLE pairing</p>";
+
   html += "<button type='submit'>Save and Reboot</button>";
   html += "</form></div></body></html>";
 
@@ -152,6 +170,31 @@ bool parseConfigFromRequest(WebServer &web, const BridgeConfig &current, BridgeC
   if (next.wifiMode == WifiMode::STA && next.staSsid.isEmpty()) {
     errorMessage = "STA mode requires SSID.";
     return false;
+  }
+
+  const String bleEnabled = web.arg("bleenabled");
+  next.bluetoothMode = (bleEnabled == "on") ? BluetoothMode::ON : BluetoothMode::OFF;
+
+  next.BLEServiceUuid = truncateTo(web.arg("blesvc"), cfg::kBleUuidMaxLen);
+  next.BLECharacteristicUuid = truncateTo(web.arg("blechar"), cfg::kBleUuidMaxLen);
+
+  if (next.BLEServiceUuid.isEmpty()) {
+    next.BLEServiceUuid = cfg::kBleServiceUuid;
+  }
+  if (next.BLECharacteristicUuid.isEmpty()) {
+    next.BLECharacteristicUuid = cfg::kBleCharacteristicUuid;
+  }
+
+  next.BLEPin = truncateTo(web.arg("blepin"), cfg::kBlePinLen);
+  if (next.BLEPin.isEmpty() || next.BLEPin.length() != cfg::kBlePinLen) {
+    next.BLEPin = cfg::kBleDefaultPin;
+  }
+  // Validate PIN is all digits
+  for (size_t i = 0; i < next.BLEPin.length(); i++) {
+    if (!isdigit(next.BLEPin[i])) {
+      errorMessage = "BLE PIN must be exactly 6 digits.";
+      return false;
+    }
   }
 
   return true;
