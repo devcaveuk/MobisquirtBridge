@@ -2,6 +2,7 @@
 
 #include <esp32-hal-rgb-led.h>
 
+#include "ble_bridge.h"
 #include "config.h"
 
 namespace {
@@ -89,12 +90,14 @@ void serviceTcpBridge(WiFiServer &tcpServer, WiFiClient &tcpClient, HardwareSeri
     }
   }
 
-  if (!connected) {
-    updateStatusLed(false);
-    return;
+  // Only update LED if BLE is not connected (BLE takes priority)
+  if (!ble_bridge::isBleConnected()) {
+    updateStatusLed(connected);
   }
 
-  updateStatusLed(true);
+  if (!connected) {
+    return;
+  }
 
   uint8_t buf[256];
 
