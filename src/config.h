@@ -44,8 +44,8 @@ constexpr const char kBleDefaultPin[] = "123456";
 
 // UART bridge pins are defined here by board family.
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
-constexpr int kBridgeRxPin = 7;
-constexpr int kBridgeTxPin = 8;
+constexpr int kBridgeRxPin = 8;
+constexpr int kBridgeTxPin = 7;
 #else
 constexpr int kBridgeRxPin = 20;
 constexpr int kBridgeTxPin = 21;
