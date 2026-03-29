@@ -46,9 +46,11 @@ constexpr const char kBleDefaultPin[] = "123456";
 #if defined(CONFIG_IDF_TARGET_ESP32S3)
 constexpr int kBridgeRxPin = 8;
 constexpr int kBridgeTxPin = 7;
+constexpr int kMax3232PowerPin = 9;  // GPIO to power MAX3232
 #else
 constexpr int kBridgeRxPin = 20;
 constexpr int kBridgeTxPin = 21;
+constexpr int kMax3232PowerPin = 10;  // GPIO to power MAX3232
 #endif
 
 // Status LED can be overridden with STATUS_LED_PIN and STATUS_LED_ACTIVE_LOW.
