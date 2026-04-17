@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MobisquirtBridge – Hardware Build Guide</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface2: #222638;
+        --border: #2e3348;
+        --accent: #4f9cf9;
+        --accent2: #7c5cbf;
+        --green: #3ecf6e;
+        --yellow: #f0b429;
+        --red: #e05252;
+        --text: #d8dce8;
+        --text-muted: #7a8099;
+        --radius: 10px;
+        --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.65;
+        font-size: 15px;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      header {
+        background: linear-gradient(135deg, #151827 0%, #1e2440 100%);
+        border-bottom: 1px solid var(--border);
+        padding: 2.5rem 2rem 2rem;
+        text-align: center;
+      }
+      header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+      header h1 span {
+        color: var(--accent);
+      }
+      header p {
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        font-size: 0.95rem;
+      }
+
+      nav {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0.6rem 1rem;
+        display: flex;
+        gap: 1.2rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      nav a {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        padding: 0.25rem 0.5rem;
+        border-radius: 5px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      nav a:hover {
+        background: var(--surface2);
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 2.5rem auto;
+        padding: 0 1.5rem 4rem;
+      }
+
+      /* ── Section headings ───────────────────────────── */
+      h2 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 2.5rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      h2 .tag {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        background: var(--accent2);
+        color: #fff;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      h3 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 1.5rem 0 0.6rem;
+        color: var(--accent);
+      }
+
+      /* ── Cards ──────────────────────────────────────── */
+      .card-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.2rem 1.4rem;
+      }
+      .card.highlight {
+        border-color: var(--accent);
+      }
+      .card h3 {
+        margin-top: 0;
+      }
+      .card .badge {
+        display: inline-block;
+        font-size: 0.7rem;
+        padding: 0.15rem 0.55rem;
+        border-radius: 20px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.6rem;
+      }
+      .badge-blue {
+        background: #1a3a6b;
+        color: var(--accent);
+      }
+      .badge-purple {
+        background: #2e1f4f;
+        color: #b08af0;
+      }
+      .badge-green {
+        background: #0d3320;
+        color: var(--green);
+      }
+      .badge-yellow {
+        background: #3a2a00;
+        color: var(--yellow);
+      }
+
+      /* ── Option selector tabs ───────────────────────── */
+      .tabs {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .tab-btn {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        padding: 0.45rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .tab-btn.active,
+      .tab-btn:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .tab-panel {
+        display: none;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+
+      /* ── Parts tables ───────────────────────────────── */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.75rem 0 1rem;
+        font-size: 0.875rem;
+      }
+      th {
+        text-align: left;
+        padding: 0.55rem 0.8rem;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+      }
+      td {
+        padding: 0.55rem 0.8rem;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      td.qty {
+        color: var(--accent);
+        font-weight: 600;
+        text-align: center;
+        width: 3rem;
+      }
+      td.note {
+        color: var(--text-muted);
+        font-size: 0.82rem;
+      }
+
+      /* ── Code / diagrams ────────────────────────────── */
+      pre {
+        background: #0c0e16;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.2rem 1.4rem;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        line-height: 1.55;
+        color: #c9d1e8;
+        margin: 0.75rem 0;
+      }
+      code {
+        font-family: var(--mono);
+        font-size: 0.85em;
+        background: var(--surface2);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+        color: #b4c2f8;
+      }
+
+      /* ── Info / warning boxes ───────────────────────── */
+      .callout {
+        border-left: 4px solid;
+        border-radius: 0 var(--radius) var(--radius) 0;
+        padding: 0.8rem 1.1rem;
+        margin: 1rem 0;
+        font-size: 0.9rem;
+      }
+      .callout.info {
+        border-color: var(--accent);
+        background: #0d1e3a;
+      }
+      .callout.warn {
+        border-color: var(--yellow);
+        background: #271e00;
+      }
+      .callout.danger {
+        border-color: var(--red);
+        background: #2a0d0d;
+      }
+      .callout strong {
+        color: #fff;
+      }
+
+      /* ── Pin map grid ───────────────────────────────── */
+      .pin-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.6rem;
+        margin: 0.75rem 0;
+      }
+      .pin-item {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.82rem;
+      }
+      .pin-item .pin-num {
+        font-family: var(--mono);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 0.9rem;
+      }
+      .pin-item .pin-label {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+      }
+
+      /* ── Steps ──────────────────────────────────────── */
+      ol.steps {
+        padding-left: 1.5rem;
+        margin: 0.75rem 0;
+      }
+      ol.steps li {
+        margin-bottom: 0.6rem;
+        padding-left: 0.25rem;
+      }
+      ol.steps li::marker {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      /* ── Footer ─────────────────────────────────────── */
+      footer {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1><span>Mobisquirt</span>Bridge</h1>
+      <p>
+        Hardware Build Guide &mdash; ESP32 Serial / BLE Bridge for MegaSquirt
+        ECUs
+      </p>
+    </header>
+
+    <nav>
+      <a href="#overview">Overview</a>
+      <a href="#boards">Choose a Board</a>
+      <a href="#connection-options">Connection Options</a>
+      <a href="#direct-uart">Direct UART Build</a>
+      <a href="#rs232-build">RS-232 / DB9 Build</a>
+      <a href="#power">Power &amp; Level Shifting</a>
+      <a href="#max3232-switch">MAX3232 Switch Circuit</a>
+      <a href="#status-led">Status LED</a>
+      <a href="#flash">Flash Firmware</a>
+    </nav>
+
+    <main>
+      <!-- ── Overview ── -->
+      <section id="overview">
+        <h2>Overview</h2>
+        <p>
+          MobisquirtBridge turns an inexpensive ESP32 module into a wireless
+          gateway between your MegaSquirt (or any MegaSquirt-compatible) ECU and
+          <strong>TunerStudio / Mobisquirt</strong>. It exposes the ECU's serial
+          port over <strong>Wi-Fi (TCP)</strong> and optionally over
+          <strong>Bluetooth LE</strong>, so you can tune and datalog from a
+          phone or laptop without a USB cable.
+        </p>
+
+        <div class="card-row" style="margin-top: 1.2rem">
+          <div class="card">
+            <span class="badge badge-blue">Wi-Fi</span>
+            <h3>TCP Socket Bridge</h3>
+            <p>
+              Connects on port <code>9001</code>. Works in both AP mode (module
+              creates its own network) and STA mode (joins your existing Wi-Fi).
+              Automatically falls back to AP if STA fails.
+            </p>
+          </div>
+          <div class="card">
+            <span class="badge badge-purple">BLE</span>
+            <h3>Bluetooth LE Bridge</h3>
+            <p>
+              Optional BLE characteristic bridge. PIN-protected pairing. One
+              client at a time shared with the TCP bridge.
+            </p>
+          </div>
+          <div class="card">
+            <span class="badge badge-green">Config</span>
+            <h3>Web UI</h3>
+            <p>
+              Built-in configuration page on port <code>80</code>. Set SSID,
+              password, baud rate, BLE UUIDs, and more without reflashing.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Choose a Board ── -->
+      <section id="boards">
+        <h2>Choose a Board</h2>
+        <p>
+          Both boards cost a few dollars and are supported by the provided
+          PlatformIO firmware. Pick based on size, available GPIO, or personal
+          preference.
+        </p>
+
+        <div class="card-row">
+          <div class="card highlight">
+            <span class="badge badge-blue">Recommended</span>
+            <h3>ESP32-C3 SuperMini</h3>
+            <ul
+              style="
+                padding-left: 1.2rem;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-top: 0.4rem;
+              "
+            >
+              <li>~11 × 18 mm footprint</li>
+              <li>Single-core 160 MHz RISC-V</li>
+              <li>4 MB flash</li>
+              <li>Wi-Fi 2.4 GHz + BLE 5.0</li>
+              <li>3.3 V I/O, 5 V power input</li>
+              <li>Onboard USB-C for flashing</li>
+              <li>PlatformIO env: <code>esp32-c3-supermini</code></li>
+            </ul>
+            <div
+              class="callout info"
+              style="margin-top: 0.8rem; font-size: 0.83rem"
+            >
+              UART bridge:
+              <strong
+                >RX&nbsp;GPIO&nbsp;20 &nbsp;/&nbsp; TX&nbsp;GPIO&nbsp;21</strong
+              ><br />
+              MAX3232 power pin: <strong>GPIO&nbsp;10</strong><br />
+              Status LED: <strong>GPIO&nbsp;8</strong> (active-low)
+            </div>
+          </div>
+
+          <div class="card">
+            <span class="badge badge-purple">Alternative</span>
+            <h3>ESP32-S3 Zero</h3>
+            <ul
+              style="
+                padding-left: 1.2rem;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                margin-top: 0.4rem;
+              "
+            >
+              <li>~22 × 18 mm footprint</li>
+              <li>Dual-core 240 MHz Xtensa</li>
+              <li>4 MB flash + 2 MB PSRAM</li>
+              <li>Wi-Fi 2.4 GHz + BLE 5.0</li>
+              <li>3.3 V I/O, 5 V power input</li>
+              <li>Onboard USB-C for flashing</li>
+              <li>PlatformIO env: <code>esp32-s3-zero</code></li>
+            </ul>
+            <div
+              class="callout info"
+              style="margin-top: 0.8rem; font-size: 0.83rem"
+            >
+              UART bridge:
+              <strong
+                >RX&nbsp;GPIO&nbsp;8 &nbsp;/&nbsp; TX&nbsp;GPIO&nbsp;7</strong
+              ><br />
+              MAX3232 power pin: <strong>GPIO&nbsp;9</strong><br />
+              Status LED: <strong>GPIO&nbsp;21</strong> (NeoPixel, active-low)
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Connection Options ── -->
+      <section id="connection-options">
+        <h2>Connection Options</h2>
+        <p>
+          Choose how the bridge physically connects to your ECU's serial port:
+        </p>
+
+        <div class="card-row">
+          <div class="card">
+            <span class="badge badge-green">Embedded</span>
+            <h3>Option A — Direct UART</h3>
+            <p>
+              Solder directly to the ECU PCB's UART pads (TX / RX / GND / 3.3 V
+              or 5 V). Ideal for a permanent, compact installation inside the
+              ECU enclosure.
+            </p>
+            <p
+              style="
+                margin-top: 0.6rem;
+                color: var(--text-muted);
+                font-size: 0.85rem;
+              "
+            >
+              ⚠ Requires access to ECU UART pads. May need 5 V→3.3 V level
+              shifting on RX.
+            </p>
+          </div>
+          <div class="card">
+            <span class="badge badge-yellow">External</span>
+            <h3>Option B — RS-232 / DB9</h3>
+            <p>
+              Use a <strong>MAX3232</strong> RS-232 transceiver to connect to
+              the ECU's existing DB9 serial port. Works with any MegaSquirt that
+              has an external serial connector.
+            </p>
+            <p
+              style="
+                margin-top: 0.6rem;
+                color: var(--text-muted);
+                font-size: 0.85rem;
+              "
+            >
+              No ECU disassembly required. Can be housed in a small project box.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Direct UART Build ── -->
+      <section id="direct-uart">
+        <h2>Option A — Direct UART Build <span class="tag">Embedded</span></h2>
+
+        <h3>Parts List</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Qty</th>
+              <th>Component</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="qty">1</td>
+              <td>ESP32-C3 SuperMini <em>or</em> ESP32-S3 Zero</td>
+              <td class="note">See board comparison above</td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>10 kΩ resistor (1/4 W)</td>
+              <td class="note">
+                5 V→3.3 V level shift on RX pin (if ECU UART is 5 V logic)
+              </td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>22 kΩ resistor (1/4 W) <em>or</em> 20 kΩ</td>
+              <td class="note">
+                Paired with 10 kΩ for voltage divider; omit both if ECU is 3.3 V
+              </td>
+            </tr>
+            <tr>
+              <td class="qty">–</td>
+              <td>Short wire / pin headers</td>
+              <td class="note">TX, RX, GND, power connections</td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>Decoupling capacitor 100 nF (optional)</td>
+              <td class="note">Place across VCC / GND near module</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout warn">
+          <strong>5 V UART caution:</strong> The ESP32 GPIO pins are
+          <strong>not</strong> 5 V-tolerant. If the ECU outputs 5 V logic on its
+          TX line (which becomes the ESP32's RX line), you
+          <strong>must</strong> shift it down to 3.3 V. A simple resistor
+          divider is sufficient at these low frequencies.
+        </div>
+
+        <h3>Wiring — 3.3 V ECU UART (no level shifting needed)</h3>
+        <pre>
+  ECU PCB
+  ┌──────────────┐                ┌───────────────────────┐
+  │ UART TX  ────┼────────────────┼── RX (GPIO 20 / 8)    │
+  │ UART RX  ────┼────────────────┼── TX (GPIO 21 / 7)    │
+  │ GND      ────┼────────────────┼── GND                 │  ESP32
+  │ 3.3 V    ────┼────────────────┼── 3V3                 │
+  └──────────────┘                └───────────────────────┘
+                                       C3: GPIO20/21
+                                       S3: GPIO8/7</pre
+        >
+
+        <h3>Wiring — 5 V ECU UART (resistor divider on RX)</h3>
+        <pre>
+  ECU PCB                              ESP32
+  ┌──────────────┐                ┌───────────────────────┐
+  │              │   10 kΩ        │                       │
+  │ UART TX  ────┼───/\/\/───┬────┼── RX (GPIO 20 / 8)    │
+  │              │           │    │                       │
+  │              │          22 kΩ │                       │
+  │              │           │    │                       │
+  │              │          GND   │                       │
+  │              │                │                       │
+  │ UART RX  ────┼────────────────┼── TX (GPIO 21 / 7)    │
+  │ GND      ────┼────────────────┼── GND                 │
+  │ 5 V      ────┼────────────────┼── 5V (USB pin)        │
+  └──────────────┘                └───────────────────────┘
+
+  Divider output voltage: 5V × 22k/(10k+22k) ≈ 3.44 V  ✓ safe for 3.3 V GPIO</pre
+        >
+
+        <div class="callout info">
+          The ESP32's TX output (3.3 V logic HIGH) is accepted as a valid logic
+          HIGH by 5 V UART receivers, so
+          <strong>no level shifting is needed on the TX side</strong>.
+        </div>
+      </section>
+
+      <!-- ── RS-232 / DB9 Build ── -->
+      <section id="rs232-build">
+        <h2>Option B — RS-232 / DB9 Build <span class="tag">External</span></h2>
+        <p>
+          Adds a MAX3232 (or MAX232) RS-232 transceiver between the ESP32 and
+          the ECU's DB9 serial port. The ECU communicates at TTL levels
+          internally; the DB9 port uses RS-232 voltage levels (±3 V to ±15 V).
+          The MAX3232 handles the translation transparently.
+        </p>
+        <a href="./WiFiAdaptorCase.stl"
+          >A 3D printable case is available here</a
+        >
+        <h3>Parts List</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Qty</th>
+              <th>Component</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="qty">1</td>
+              <td>ESP32-C3 SuperMini <em>or</em> ESP32-S3 Zero</td>
+              <td class="note">See board comparison above</td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>MAX3232 IC (DIP-16 or SOIC-16)</td>
+              <td class="note">
+                3.3 V compatible; do NOT use MAX232 (requires 5 V)
+              </td>
+            </tr>
+            <tr>
+              <td class="qty">4</td>
+              <td>100 nF / 0.1 µF ceramic capacitor</td>
+              <td class="note">
+                Charge-pump caps for MAX3232 (C1–C4); some modules include these
+              </td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>DB9 female connector (DE-9F)</td>
+              <td class="note">
+                Null-modem or straight-through depending on ECU pinout
+              </td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>NPN transistor (2N3904, 2N2222, BC547, etc.)</td>
+              <td class="note">MAX3232 power switch — see circuit below</td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>1 kΩ – 10 kΩ resistor (5 kΩ preferred)</td>
+              <td class="note">Base resistor for transistor switch</td>
+            </tr>
+            <tr>
+              <td class="qty">1</td>
+              <td>Small project enclosure (optional)</td>
+              <td class="note">~60 × 40 × 20 mm is sufficient</td>
+            </tr>
+            <tr>
+              <td class="qty">–</td>
+              <td>Pin headers / jumper wire</td>
+              <td class="note">For interconnects</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout info">
+          Pre-built MAX3232 breakout modules (available for &lt;$1) include the
+          IC and all four capacitors in a convenient 4-pin or 6-pin header form
+          factor, simplifying assembly.
+        </div>
+
+        <h3>DB9 Pinout (RS-232 DTE, standard MegaSquirt)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>DB9 Pin</th>
+              <th>Signal</th>
+              <th>Direction (ECU = DCE)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2</td>
+              <td>RXD</td>
+              <td>ECU → Computer (data out of ECU)</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>TXD</td>
+              <td>Computer → ECU (data into ECU)</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>GND</td>
+              <td>Signal ground</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Wiring Diagram</h3>
+        <pre>
+  DB9 Female                MAX3232                    ESP32
+  ┌─────────┐              ┌──────────┐            ┌──────────────┐
+  │ Pin 2   ├──── T1OUT ───┤ R1IN     │            │              │
+  │ (RXD)   │              │ R1OUT ───┼────────────┼── RX GPIO    │
+  │         │              │          │            │  (20 / 8)    │
+  │ Pin 3   ├──── R1IN ────┤ T1IN ────┼────────────┼── TX GPIO    │
+  │ (TXD)   │              │          │            │  (21 / 7)    │
+  │         │              │          │            │              │
+  │ Pin 5   ├──────────────┤ GND      │            │ GND          │
+  │ (GND)   │              │          ├────────────┤              │
+  └─────────┘              │ VCC ─────┼── 3.3 V ───┤ 3V3          │
+                           └──────────┘            └──────────────┘
+
+  All four 100 nF caps placed between MAX3232 C1+/C1-, C2+/C2-,
+  V+ (pin 2) to GND, and V- (pin 6) to GND — see MAX3232 datasheet.</pre
+        >
+
+        <div class="callout warn">
+          <strong>MAX3232 ground path:</strong> The firmware controls MAX3232
+          power via a transistor on the GND side. See the
+          <a href="#max3232-switch">MAX3232 Switch Circuit</a>
+          section — do not wire MAX3232 GND directly to system GND without the
+          switching circuit.
+        </div>
+      </section>
+
+      <!-- ── Power & Level Shifting ── -->
+      <section id="power">
+        <h2>Power &amp; Level Shifting</h2>
+
+        <div class="card-row">
+          <div class="card">
+            <h3>Powering the ESP32</h3>
+            <p>
+              Both boards accept <strong>5 V on the USB / 5V pin</strong> and
+              regulate it internally to 3.3 V. You can power them from:
+            </p>
+            <ul
+              style="
+                padding-left: 1.2rem;
+                margin-top: 0.5rem;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+              "
+            >
+              <li>USB-C port (flashing or bench use)</li>
+              <li>ECU 5 V rail via the 5V pin</li>
+              <li>3.3 V directly into the 3V3 pin (bypass regulator)</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>GPIO Voltage Limits</h3>
+            <p>
+              All ESP32 GPIO pins are <strong>3.3 V maximum</strong>. Applying 5
+              V to a GPIO input will damage the chip over time.
+            </p>
+            <ul
+              style="
+                padding-left: 1.2rem;
+                margin-top: 0.5rem;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+              "
+            >
+              <li>Direct UART from 3.3 V ECU → no shifting needed</li>
+              <li>Direct UART from 5 V ECU → shift RX with resistor divider</li>
+              <li>RS-232 via MAX3232 → MAX3232 handles all level conversion</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Resistor Divider Calculator</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem">
+          For a 5 V → 3.3 V divider: choose R1 = 10 kΩ and R2 = 22 kΩ. Output =
+          5 × 22/(10+22) = <strong>3.44 V</strong>, within the 3.3 V GPIO spec.
+          Both values are common E24 series resistors.
+        </p>
+      </section>
+
+      <!-- ── MAX3232 Switch ── -->
+      <section id="max3232-switch">
+        <h2>MAX3232 Power Switch Circuit</h2>
+        <p>
+          The firmware holds the MAX3232 power-control GPIO
+          <strong>LOW during boot</strong>
+          and drives it HIGH only after full initialization. This prevents the
+          RS-232 driver from outputting undefined signals on the DB9 while the
+          ESP32 is starting up.
+        </p>
+        <p style="margin-top: 0.5rem">
+          Because the MAX3232 draws ~10 mA from its supply, a GPIO pin cannot
+          switch it directly. A simple NPN transistor provides the necessary
+          current switching.
+        </p>
+
+        <div class="callout info">
+          Power GPIO: <strong>GPIO&nbsp;9</strong> (ESP32-S3) &nbsp;/&nbsp;
+          <strong>GPIO&nbsp;10</strong> (ESP32-C3)
+        </div>
+
+        <h3>Circuit</h3>
+        <pre>
+  3.3 V rail ─────────────────────────── MAX3232 VCC
+
+  MAX3232 GND ──→ Collector ┐
+                            │ NPN (2N3904 / 2N2222 / BC547)
+                Base ──[R]──┘
+                │             R = 1 kΩ to 10 kΩ (5 kΩ preferred)
+  ESP32 GPIO ───┘
+
+                Emitter ──→ GND</pre
+        >
+
+        <p style="margin-top: 0.75rem">
+          When the ESP32 pulls GPIO HIGH (3.3 V), the transistor saturates,
+          completing the ground path for the MAX3232 and powering it on. When
+          LOW (or during boot), the transistor is off and the MAX3232 is
+          unpowered.
+        </p>
+
+        <h3>Transistor Pin Guide (TO-92 package)</h3>
+        <div class="pin-grid">
+          <div class="pin-item">
+            <div class="pin-num">Pin 1 (E)</div>
+            <div class="pin-label">Emitter → GND</div>
+          </div>
+          <div class="pin-item">
+            <div class="pin-num">Pin 2 (B)</div>
+            <div class="pin-label">Base → resistor → ESP32 GPIO</div>
+          </div>
+          <div class="pin-item">
+            <div class="pin-num">Pin 3 (C)</div>
+            <div class="pin-label">Collector → MAX3232 GND</div>
+          </div>
+        </div>
+        <p
+          style="
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 0.4rem;
+          "
+        >
+          2N3904 flat-face order (left to right): E – B – C. 2N2222 (TO-92): E –
+          B – C. BC547 (TO-92): C – B – E (reversed — check datasheet).
+        </p>
+      </section>
+
+      <!-- ── Status LED ── -->
+      <section id="status-led">
+        <h2>Status LED</h2>
+        <p>
+          The onboard LED gives a quick health indicator without needing a
+          serial monitor:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>LED State</th>
+              <th>Meaning</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Blinking</strong> (600 ms)</td>
+              <td>Waiting for a client (TCP or BLE)</td>
+            </tr>
+            <tr>
+              <td><strong>Solid ON</strong></td>
+              <td>Client connected — bridge is active</td>
+            </tr>
+            <tr>
+              <td><strong>Off</strong></td>
+              <td>Initializing or error</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="card-row" style="margin-top: 1rem">
+          <div class="card">
+            <h3>ESP32-C3 SuperMini</h3>
+            <p>
+              GPIO <strong>8</strong>, active-low, standard GPIO LED. Override
+              with <code>STATUS_LED_PIN</code> in <code>platformio.ini</code>.
+            </p>
+          </div>
+          <div class="card">
+            <h3>ESP32-S3 Zero</h3>
+            <p>
+              GPIO <strong>21</strong>, NeoPixel (WS2812B) RGB LED. Firmware
+              lights it as white/off. Override behaviour with
+              <code>STATUS_LED_PIN</code> and
+              <code>STATUS_LED_IS_NEOPIXEL</code>.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Flash Firmware ── -->
+      <section id="flash">
+        <h2>Flash Firmware</h2>
+
+        <h3>Prerequisites</h3>
+        <ul style="padding-left: 1.2rem; margin-bottom: 0.75rem">
+          <li>
+            <a
+              href="https://docs.platformio.org/en/latest/core/installation/index.html"
+              target="_blank"
+              rel="noopener"
+              >PlatformIO Core</a
+            >
+            or the
+            <a
+              href="https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide"
+              target="_blank"
+              rel="noopener"
+              >VS Code PlatformIO extension</a
+            >
+          </li>
+          <li>USB-C cable (data-capable, not charge-only)</li>
+          <li>The MobisquirtBridge source repository</li>
+        </ul>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="showTab(event, 'flash-c3')">
+            ESP32-C3 SuperMini
+          </button>
+          <button class="tab-btn" onclick="showTab(event, 'flash-s3')">
+            ESP32-S3 Zero
+          </button>
+        </div>
+
+        <div id="flash-c3" class="tab-panel active">
+          <ol class="steps">
+            <li>Connect the ESP32-C3 SuperMini to your computer via USB-C.</li>
+            <li>Open a terminal in the project root directory.</li>
+            <li>
+              Run:
+              <pre>pio run -e esp32-c3-supermini --target upload</pre>
+            </li>
+            <li>
+              Monitor serial output (optional):
+              <pre>pio device monitor -e esp32-c3-supermini</pre>
+            </li>
+            <li>
+              Connect to the <code>MobisquirtBridge</code> Wi-Fi network
+              (password: <code>mobisquirt123</code>) and open
+              <code>http://192.168.4.1</code> to configure.
+            </li>
+          </ol>
+        </div>
+
+        <div id="flash-s3" class="tab-panel">
+          <ol class="steps">
+            <li>Connect the ESP32-S3 Zero to your computer via USB-C.</li>
+            <li>Open a terminal in the project root directory.</li>
+            <li>
+              Run:
+              <pre>pio run -e esp32-s3-zero --target upload</pre>
+            </li>
+            <li>
+              Monitor serial output (optional):
+              <pre>pio device monitor -e esp32-s3-zero</pre>
+            </li>
+            <li>
+              Connect to the <code>MobisquirtBridge</code> Wi-Fi network
+              (password: <code>mobisquirt123</code>) and open
+              <code>http://192.168.4.1</code> to configure.
+            </li>
+          </ol>
+        </div>
+
+        <div class="callout info" style="margin-top: 1rem">
+          <strong>Default settings after first flash:</strong><br />
+          Wi-Fi mode: AP &nbsp;|&nbsp; SSID:
+          <code>MobisquirtBridge</code> &nbsp;|&nbsp; Password:
+          <code>mobisquirt123</code> &nbsp;|&nbsp; TCP port:
+          <code>9001</code> &nbsp;|&nbsp; Baud:
+          <code>115200</code> &nbsp;|&nbsp; BLE: Off
+        </div>
+
+        <h3>TunerStudio / Mobisquirt Connection</h3>
+        <ol class="steps">
+          <li>
+            Join the <code>MobisquirtBridge</code> Wi-Fi network (or configure
+            STA mode in the web UI).
+          </li>
+          <li>
+            In TunerStudio, create a new project and select
+            <strong>TCP/IP</strong> as the communications type.
+          </li>
+          <li>
+            Enter the bridge IP address (AP mode: <code>192.168.4.1</code>) and
+            port <code>9001</code>.
+          </li>
+          <li>
+            Set the baud rate to match your ECU (default <code>115200</code>).
+          </li>
+          <li>Connect — the status LED should go solid.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      MobisquirtBridge &mdash; ESP32 Serial Bridge &mdash; MIT License
+    </footer>
+
+    <script>
+      function showTab(event, id) {
+        const parent = event.target.closest("section");
+        parent
+          .querySelectorAll(".tab-btn")
+          .forEach((b) => b.classList.remove("active"));
+        parent
+          .querySelectorAll(".tab-panel")
+          .forEach((p) => p.classList.remove("active"));
+        event.target.classList.add("active");
+        parent.getElementById
+          ? parent.getElementById(id).classList.add("active")
+          : document.getElementById(id).classList.add("active");
+      }
+    </script>
+  </body>
+</html>
